@@ -1,0 +1,18 @@
+# Local dev secrets. Copy to .dev.vars (gitignored) and fill in.
+# In production these are set with `npx wrangler secret put <NAME>` — never in wrangler.jsonc.
+
+# Apollo API key for the workspace whose dialer records the calls.
+APOLLO_SALES_API_KEY=
+
+# AssemblyAI. Sent as `authorization: <key>` with NO "Bearer " prefix.
+ASSEMBLYAI_API_KEY=
+
+# Anthropic. Used for the analysis pass (claude-opus-5).
+ANTHROPIC_API_KEY=
+
+# Notion internal integration token (starts with ntn_ or secret_).
+# The target parent page must be shared with this integration or writes 404.
+NOTION_TOKEN=
+
+# Shared secret guarding GET /run?token=… — generate with: openssl rand -hex 24
+MANUAL_RUN_TOKEN=

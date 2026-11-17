@@ -1,0 +1,25 @@
+{
+  "name": "coldcall-analyzer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nightly Cloudflare Worker: pulls Apollo cold-call recordings, transcribes them speaker-separated, and writes call insights to Notion.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "typecheck": "tsc --noEmit",
+    "db:init:local": "wrangler d1 execute coldcall-analyzer --local --file=./schema.sql",
+    "db:init:remote": "wrangler d1 execute coldcall-analyzer --remote --file=./schema.sql",
+    "validate:attribution": "node scripts/validate-attribution.ts"
+  },
+  "scriptsComment": "validate:attribution scores rep/prospect channel detection against Apollo's own speaker timelines. Run it before trusting any insight.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260811.1",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.122.0"
+  }
+}

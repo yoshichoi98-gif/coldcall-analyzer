@@ -1,0 +1,62 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "coldcall-analyzer",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+
+  // Required by @anthropic-ai/sdk, which imports node:path via its credential chain.
+  // Without this the Worker builds fine and then throws at runtime — the failure shows up
+  // at 3am on the first real cron, not at deploy time.
+  "compatibility_flags": ["nodejs_compat"],
+
+  "observability": { "enabled": true },
+
+  // Weekdays only, 10:00 UTC == 03:00 America/Los_Angeles.
+  //
+  // Cloudflare cron is UTC; Apollo buckets its days in America/Los_Angeles. Running at 3am PT
+  // means a run always covers a *completed* PT day.
+  //
+  // Mon-Fri means Monday's run is the first after the weekend, so Friday's calls are analyzed
+  // Monday morning rather than Saturday. LOOKBACK_DAYS below is what makes that lossless.
+  // To get Friday's calls on Saturday instead, change this to "0 10 * * 2-6" (Tue-Sat).
+  "triggers": { "crons": ["0 10 * * 1-5"] },
+
+  // Ledger of processed calls (idempotency). Created 2026-08-13 in region WNAM.
+  // Schema lives in schema.sql; apply with: npm run db:init:remote
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "coldcall-analyzer",
+      "database_id": "00000000-0000-0000-0000-000000000051"
+    }
+  ],
+
+  // Non-secret config. Secrets go through `wrangler secret put` — see .dev.vars.example.
+  "vars": {
+    // Re-sweep several days on every run. Cloudflare publishes no execution SLA for cron,
+    // so a missed run must self-heal; this also re-checks calls whose audio uploaded late.
+    // 4 days covers the Fri->Mon weekend gap.
+    "LOOKBACK_DAYS": "4",
+
+    // No disposition filter and no minimum duration (both removed 2026-11-10): every call
+    // with a recording is analyzed, as long as both sides speak. See fetchTargetCalls.
+
+    // Substrings used to identify the rep's channel from the transcript (signal 2 of 3).
+    // Lowercased before matching. Add rep first names as the team grows.
+    "REP_NAME_HINTS": "alleviate,yoshi",
+
+    // Domain proper nouns sent to AssemblyAI as `keyterms_prompt`. Without these it spells
+    // unknown names phonetically — a competitor name came back as a phonetic misspelling —
+    // which quietly corrupts competitor tracking, since a name the transcript gets wrong is a
+    // name you cannot group or count on. Verified: keyterms_prompt fixes both.
+    //
+    // Add competitors, customer names, and CTMS/EMR vendors as they come up on calls.
+    "VOCABULARY_BOOST": "Alleviate Health,CTMS,CRC,IRB,ICF,Example Competitor,Example Customer",
+
+    "ANTHROPIC_MODEL": "claude-opus-5",
+
+    // Notion database that receives one page per call (share it with the integration).
+    // https://app.notion.com/p/00000000000000000000000000000052
+    "NOTION_CALLS_DATABASE_ID": "00000000000000000000000000000052"
+  }
+}
